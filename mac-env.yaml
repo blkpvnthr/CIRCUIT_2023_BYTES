@@ -1,0 +1,13 @@
+name: mac-env
+channels:
+  - defaults
+dependencies:
+  - python=3.7
+  - pandas
+  - numpy
+  - matplotlib
+  - scikit-learn
+  - openpyxl
+ - geodatasets
+  - geopandas
+
