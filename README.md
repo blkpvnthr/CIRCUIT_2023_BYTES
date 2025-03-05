@@ -1,4 +1,4 @@
-# 2023 CIRCUIT `BYTES-Challenge`
+<h2 style="text-align: center"> "2023 CIRCUIT `BYTES-Challenge`</h2>
 
 <img src="circuit.jpg">
 
