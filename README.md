@@ -18,8 +18,7 @@ This project contains code for performing data analysis and machine learning tas
 To run this project on your local machine, follow the instructions below.
 
 ### Prerequisites
-
-- [Python>=3.7]([url](https://www.python.org/downloads/)) 
+- <p href="https://www.python.org/downloads/" target="_blank">Python>=3.7</p> 
 
 ### Installation
 
