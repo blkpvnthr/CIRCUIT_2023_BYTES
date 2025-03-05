@@ -1,7 +1,7 @@
 # 2023 CIRCUIT `BYTES-Challenge`
 
+This repository showcases a machine learning and data analysis framework developed under the **Johns Hopkins University Applied Physics Laboratory (JHU/APL) 2023 CIRCUIT** undergraduate research internship. It includes end-to-end examples of data preprocessing, visualization, classification, regression, and clustering using **Python** and popular libraries such as **pandas**, **numpy**, **matplotlib**, and **scikit-learn**.
 
-This project contains code for performing data analysis and machine learning tasks, including data preprocessing, visualization, classification, regression, and clustering. It uses Python and several popular libraries such as **pandas**, **numpy**, **matplotlib**, and **scikit-learn**.
 
 ---
 
