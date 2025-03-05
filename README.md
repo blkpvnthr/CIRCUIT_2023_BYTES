@@ -1,4 +1,4 @@
-# The Johns Hopkins University Applied Physics Laboratory<br> 2023 CIRCUIT Undergraduate Research Internship BYTES Challenge
+# 2023 CIRCUIT Undergraduate Research Internship BYTES Challenge
 
 
 This project contains code for performing data analysis and machine learning tasks, including data preprocessing, visualization, classification, regression, and clustering. It uses Python and several popular libraries such as **pandas**, **numpy**, **matplotlib**, and **scikit-learn**.
