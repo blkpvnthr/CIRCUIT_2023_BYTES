@@ -32,7 +32,6 @@ This will install the required Python packages.
 
 
 ### Usage
-Just run `main.py`.
   ```bash
 python main.py
 ```
