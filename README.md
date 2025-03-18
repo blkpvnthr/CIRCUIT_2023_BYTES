@@ -33,7 +33,7 @@ To run this project on your local machine, follow the instructions below.
    pip install -r requirements.txt
    ```
 This will install the required Python packages.
-
+---
 
 ### Usage
   ```bash
@@ -47,6 +47,7 @@ The code will perform data preprocessing, visualization, classification, regress
 policies-to-deaths.csv
 ```
 A more robust analysis is needed to draw conclusions about state policy implementation and its effectiveness in mitigating deaths.
+<hr>
 
 ### Contributing
 Contributions are welcome! If you find issues or want to add new features, open an issue or submit a pull request.
