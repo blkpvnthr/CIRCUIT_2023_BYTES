@@ -32,7 +32,6 @@ To run this project on your local machine, follow the instructions below.
    ```bash
    pip install -r requirements.txt
    ```
-This will install the required Python packages.
 ---
 
 ### Usage
