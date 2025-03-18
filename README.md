@@ -40,7 +40,7 @@ The code will perform data preprocessing, visualization, classification, regress
 
 ### The output of this code can be found in 
 ```bash
-policies-to-deaths.csv
+correlation.csv
 ```
 A more robust analysis is needed to draw conclusions about state policy implementation and its effectiveness in mitigating deaths.
 <hr>
