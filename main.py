@@ -2,7 +2,11 @@ import pandas as pd
 import geopandas
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
-
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+from dbfread import DBF
+import seaborn as sns
+from datetime import datetime
 
 class CovidAnalysis:
     def __init__(self):
@@ -330,7 +334,179 @@ class CovidAnalysis:
         # columns=['Total Deaths','EffectiveOffset'].
 
         return df_melt
+    def conclusions(self,
+        data='correlation.csv',
+        pop='deaths4.csv',
+        policy='policy_numeric.csv',
+        drop_missing=True,
+        baseline='2020-01-01'
+    ):
+        """
+        Conclusions analysis pipeline: correlation heatmap, regression analysis,
+        population density calculation, policy timing extraction, merged dataset visualizations.
+        """
 
+        # ----------- 1. Load and clean the correlation dataset -----------
+        if isinstance(data, str):
+            data_df = pd.read_csv(data)
+        else:
+            data_df = data.copy()
+
+        # Ensure numeric columns
+        numeric_cols = ['STAYHOME_days', 'FM_ALL_days', 'Population', 'Total Deaths', 'EffectiveOffset', 'pct_of_pop_dead']
+        for col in numeric_cols:
+            data_df[col] = pd.to_numeric(data_df[col], errors='coerce')
+
+        if drop_missing:
+            data_df.dropna(subset=numeric_cols, inplace=True)
+
+        # ----------- 2. Correlation heatmap -----------
+        corr_matrix = data_df[numeric_cols].corr()
+
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', square=True)
+        plt.title("Correlation Matrix Heatmap")
+        plt.show()
+
+        # ----------- 3. Regression analysis -----------
+        regression_data = data_df[['STAYHOME_days', 'FM_ALL_days', 'EffectiveOffset', 'pct_of_pop_dead']].dropna()
+        X = regression_data[['STAYHOME_days', 'FM_ALL_days', 'EffectiveOffset']]
+        y = regression_data['pct_of_pop_dead']
+
+        reg_model = LinearRegression()
+        reg_model.fit(X, y)
+
+        y_pred = reg_model.predict(X)
+        r2 = r2_score(y, y_pred)
+
+        coefficients = pd.DataFrame({
+            'Feature': X.columns,
+            'Coefficient': reg_model.coef_
+        })
+
+        print("Regression Coefficients:\n", coefficients)
+        print("Intercept:", reg_model.intercept_)
+        print("R^2 Score:", r2)
+
+        # ----------- 4. Load population and area data (land areas from dbf) -----------
+        dbf_path = 'map/cb_2018_us_state_500k.dbf'
+        dbf_table = DBF(dbf_path)
+        dbf_df = pd.DataFrame(iter(dbf_table))
+
+        areas_df = dbf_df[['NAME', 'ALAND']].copy()
+        areas_df['Area_sq_miles'] = areas_df['ALAND'] / 2.58999e+6
+
+        population_2021 = pd.read_csv('NST-EST2021-alldata.csv', encoding='latin1')
+        state_pop_2021 = population_2021[population_2021['SUMLEV'] == 40][['NAME', 'POPESTIMATE2021']]
+
+        pop_area_df = state_pop_2021.merge(areas_df[['NAME', 'Area_sq_miles']], on='NAME')
+        pop_area_df['Pop_density'] = pop_area_df['POPESTIMATE2021'] / pop_area_df['Area_sq_miles']
+
+        # ----------- 5. Load and process Oxford policy dataset -----------
+        oxford_policy = pd.read_excel('OxCGRTUS_timeseries_all.xlsx', sheet_name=None)
+        stay_home = oxford_policy['c6_stay_at_home_requirements']
+        mask_mandates = oxford_policy['h6_facial_coverings']
+
+
+        def get_first_policy_date(row: pd.Series) -> pd.Timestamp:
+            policy_series = row[5:]
+            active_dates = policy_series[policy_series > 0].index
+            if len(active_dates) == 0:
+                return pd.Timestamp(pd.NaT)
+            return pd.to_datetime(active_dates[0])
+
+
+        # Make sure you call apply with axis=1 for row-wise operation
+        stay_home['STAYHOME'] = stay_home.apply(lambda row: get_first_policy_date(row), axis=1)
+        mask_mandates['FM_ALL'] = mask_mandates.apply(lambda row: get_first_policy_date(row), axis=1)
+
+
+        # Strip spaces and ensure matching key columns
+        stay_home.rename(columns={'region_name': 'POSTCODE'}, inplace=True)
+        mask_mandates.rename(columns={'region_name': 'POSTCODE'}, inplace=True)
+
+        policy_timing = stay_home[['POSTCODE', 'STAYHOME']].merge(
+            mask_mandates[['POSTCODE', 'FM_ALL']], on='POSTCODE'
+        )
+
+        policy_timing['STAYHOME'] = pd.to_datetime(policy_timing['STAYHOME'], errors='coerce')
+        policy_timing['FM_ALL'] = pd.to_datetime(policy_timing['FM_ALL'], errors='coerce')
+
+        cutoff_date = datetime(2020, 3, 20)
+        policy_timing['StayHome_Response'] = policy_timing['STAYHOME'].apply(
+            lambda x: 'Early' if pd.notnull(x) and x <= cutoff_date else 'Late'
+        )
+        policy_timing['Mask_Response'] = policy_timing['FM_ALL'].apply(
+            lambda x: 'Early' if pd.notnull(x) and x <= cutoff_date else 'Late'
+        )
+
+        # ----------- 6. Merge all datasets -----------
+        merged_df = policy_timing.merge(pop_area_df, left_on='POSTCODE', right_on='NAME')
+
+        # Load deaths dataset (or use the already loaded data_df)
+        covid_deaths = pd.read_csv('correlation.csv')
+
+        # Merge with COVID deaths
+        final_df = merged_df.merge(covid_deaths, left_on='POSTCODE', right_on='POSTCODE', how='left')
+
+        # ----------- 7. Scatter Plot: Population Density vs Death Rate -----------
+        plt.figure(figsize=(12, 8))
+        sns.scatterplot(
+            data=final_df,
+            x='Pop_density',
+            y='pct_of_pop_dead',
+            hue='StayHome_Response'
+        )
+        plt.title('Population Density vs. COVID Death Rate')
+        plt.xlabel('Population Density (people/sq mile)')
+        plt.ylabel('COVID Death Rate (% of pop dead)')
+        plt.grid(True)
+        plt.show()
+
+        # ----------- 8. Bar and Line Charts -----------
+        # Bar Chart: pct_of_pop_dead by POSTCODE
+        plt.figure(figsize=(12, 6))
+        sns.barplot(x='POSTCODE', y='pct_of_pop_dead', data=final_df)
+        plt.ylabel('pct_of_pop_dead (%)')
+        plt.title('Percentage of Population Dead by State (POSTCODE)')
+        plt.xticks(rotation=45)
+        plt.grid(True)
+        plt.show()
+
+        # Line Chart: Total Deaths across states
+        plt.figure(figsize=(12, 6))
+        sns.lineplot(x='POSTCODE', y='Total Deaths', data=final_df, marker='o')
+        plt.ylabel('Total Deaths')
+        plt.title('Total Deaths by State (POSTCODE)')
+        plt.xticks(rotation=45)
+        plt.grid(True)
+        plt.show()
+
+        # ----------- 9. Scatter Plots for StayHome, Mask Mandate Days vs Deaths -----------
+        plt.figure(figsize=(8, 6))
+        plt.scatter(final_df['STAYHOME_days'], final_df['pct_of_pop_dead'])
+        plt.xlabel('STAYHOME_days')
+        plt.ylabel('pct_of_pop_dead (%)')
+        plt.title('Stay Home Days vs. % of Population Dead')
+        plt.grid(True)
+        plt.show()
+
+        plt.figure(figsize=(8, 6))
+        plt.scatter(final_df['FM_ALL_days'], final_df['pct_of_pop_dead'])
+        plt.xlabel('FM_ALL_days')
+        plt.ylabel('pct_of_pop_dead (%)')
+        plt.title('Face Mask Mandate Days vs. % of Population Dead')
+        plt.grid(True)
+        plt.show()
+
+        plt.figure(figsize=(8, 6))
+        sizes = final_df['pct_of_pop_dead'] * 1000
+        plt.scatter(final_df['STAYHOME_days'], final_df['FM_ALL_days'], s=sizes, alpha=0.5)
+        plt.xlabel('STAYHOME_days')
+        plt.ylabel('FM_ALL_days')
+        plt.title('Stay Home Days vs. Face Mask Days (Bubble Size = % Dead)')
+        plt.grid(True)
+        plt.show()
 
 # ------------------------ USAGE EXAMPLE --------------------------------- #
 if __name__ == '__main__':
@@ -343,24 +519,24 @@ if __name__ == '__main__':
         output_path='deaths2.csv'
     )
 
-    # 2. Perform clustering analysis 
+    # 2. Perform clustering analysis
     analysis.cluster_data(
-        input_path='deaths2.csv', 
-        num_clusters=5, 
+        input_path='deaths2.csv',
+        num_clusters=5,
         output_path='deaths_clustered.csv'
     )
 
     # 3. (Optional) Visualize the data on a map
-    #    Note: You must have a compatible shapefile 
+    #    Note: You must have a compatible shapefile
     #          and a matching key column in your CSV (e.g., state/county names).
     analysis.visualize_data(
         shapefile_path='map/cb_2018_us_state_500k.shp',
         clustering_csv='deaths_clustered.csv',
-        map_key_column='Province_State',       
+        map_key_column='Province_State',
         metric_column='Total Deaths'
     )
 
-    # 4. (Optional) Preprocess your policy data from the policies.xlsx file 
+    # 4. (Optional) Preprocess your policy data from the policies.xlsx file
     analysis.pacman3(
        policy_excel='policies.xlsx',
         deaths_csv='deaths.csv',
@@ -368,4 +544,10 @@ if __name__ == '__main__':
         drop_missing=True,
         baseline='2020-01-01'
     )
-    
+    analysis.conclusions(
+        data='correlation.csv',
+        pop='deaths4.csv',
+        policy='policy_numeric.csv',
+        drop_missing=True,
+        baseline='2020-01-01'
+    )
