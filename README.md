@@ -39,8 +39,14 @@ This will install the required Python packages.
   ```bash
 python main.py
 ```
+
 The code will perform data preprocessing, visualization, classification, regression, and clustering based on the provided functions and print the results to the terminal. You may customize the code and functions according to your specific requirements.
 
+### The output of this code can be found in 
+```bash
+policies-to-deaths.csv
+```
+Further analysis needs to be done in order to draw more comprehensive conclusions regarding COVID-19 policy implementation's affect on total deaths per state.
 
 ### Contributing
 Contributions are welcome! If you find issues or want to add new features, open an issue or submit a pull request.
