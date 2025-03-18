@@ -46,7 +46,7 @@ The code will perform data preprocessing, visualization, classification, regress
 ```bash
 policies-to-deaths.csv
 ```
-Further analysis needs to be done in order to draw more comprehensive conclusions regarding state policy implementation's affect on total deaths per state.
+A more robust analysis is needed to draw conclusions about state policy implementation and its effectiveness in mitigating deaths.
 
 ### Contributing
 Contributions are welcome! If you find issues or want to add new features, open an issue or submit a pull request.
