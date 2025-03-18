@@ -5,8 +5,7 @@
    ​At the Johns Hopkins University Applied Physics Laboratory (JHU APL), the acronym "CIRCUIT" stands for "Cohort-based Integrated Research Community for Undergraduate Innovation and Trailblazing." This program provides undergraduate students with immersive, hands-on research experiences across various STEM disciplines, including artificial intelligence, precision medicine, planetary exploration, and cybersecurity. 
 This repository showcases a machine learning and data analysis framework developed under this program. It includes end-to-end examples of data preprocessing, visualization, classification, regression, and clustering using **Python** and popular libraries such as **pandas**, **numpy**, **matplotlib**, and **scikit-learn**.
 
-
----
+<hr>
 
 ## What's New
 
